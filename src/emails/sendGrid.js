@@ -1,4 +1,5 @@
 import sgMail from "@sendgrid/mail";
+import { html } from "./html.js";
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SENDER_EMAIL = process.env.SENDER_EMAIL;
@@ -9,7 +10,7 @@ export const sendWelcomeMail = async (email, name) => {
     to: email,
     from: SENDER_EMAIL,
     subject: "Welcome to the App",
-    text: `welcome to the app ${name}. let me know how you can get along with the app`,
+    html: `${html(name, SENDER_EMAIL)}`,
   };
   sgMail
     .send(msg)
