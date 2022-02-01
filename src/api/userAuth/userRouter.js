@@ -16,6 +16,9 @@ import {
   handleUserAvatar,
   handleDeleteUserAvatar,
   getAUserAvatar,
+  change_password,
+  recoverPassword,
+  resetPassword,
 } from "./userController.js";
 
 router.post("/user/create", handleCreateUser);
@@ -28,6 +31,9 @@ router.post("/logout", authenticateUser, handleUserLogout);
 router.post("/logoutAll", authenticateUser, handleLogoutAllTokens);
 router.get("/user/:id", authenticateUser, handleSingleUser);
 router.get("/users/:id/avatar", getAUserAvatar);
+router.post("/changePassword", authenticateUser, change_password);
+router.post("/recoverPassword", recoverPassword);
+router.post("/resetPassword/:token", resetPassword);
 
 router.post(
   "/users/me/avatar",

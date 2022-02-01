@@ -1,6 +1,13 @@
 import sharp from "sharp";
 import userModel from "../../model/userModel.js";
-import { sendWelcomeMail, sendCancelationMail } from "../../emails/sendGrid.js";
+import {
+  sendWelcomeMail,
+  sendCancelationMail,
+  sendRecoverPasswordMail,
+  resetPasswordMail,
+} from "../../emails/sendGrid.js";
+import bcrypt from "bcryptjs";
+import responses from "../../helper/responses.js";
 
 // create a new user
 export const handleCreateUser = async (req, res) => {
@@ -11,7 +18,6 @@ export const handleCreateUser = async (req, res) => {
     sendWelcomeMail(newUser.email, newUser.name);
     const token = await newUser.generateAuthToken();
     return res.status(200).json({ data: newUser, token: token });
-    sendWelcomeMail();
   } catch (e) {
     if (e.name === "ValidationError") {
       if (e.errors.email) {
@@ -222,5 +228,120 @@ export const getAUserAvatar = async (req, res) => {
     res.status(200).send(user.avatar);
   } catch (e) {
     res.status(500).send();
+  }
+};
+
+export const change_password = async (request, response) => {
+  const user = request.user;
+
+  try {
+    const { old_password, new_password } = request.body;
+
+    const is_match = await bcrypt.compare(old_password, user.password);
+    const same_password = await bcrypt.compare(new_password, user.password);
+
+    if (!is_match)
+      return responses.bad_request({
+        response,
+        message: "Incorrect Password",
+        error: "Could not update password",
+      });
+
+    if (same_password)
+      return responses.bad_request({
+        response,
+        message: "New Password cannot be the same as the old password",
+        error: "Could not update password",
+      });
+
+    user.password = new_password;
+    await user.save();
+
+    responses.success({
+      response,
+      message: "Password updated successfully",
+      entity: {
+        key: "Update Password",
+      },
+      data: {},
+    });
+  } catch (error) {
+    response.status(500).send({ error: "Internal server error" });
+  }
+};
+
+export const recoverPassword = async (request, response) => {
+  const { email } = request.body;
+  if (!email)
+    return responses.not_found({
+      response,
+      message: "Input field cannot be blank",
+    });
+  try {
+    const user = await userModel.findOne({ email });
+    if (!user)
+      return responses.not_found({
+        response,
+        message: "No user is associated with that email address",
+      });
+    const generatePasswordReset = await user.generatePasswordReset();
+    console.log(generatePasswordReset);
+    const link = `http://${request.headers.host}/api/auth/${generatePasswordReset}`;
+    sendRecoverPasswordMail(user.email, user.name, link);
+    responses.success({
+      response,
+      message: "Email sent",
+      data: link,
+    });
+  } catch (error) {
+    response.status(500).send({ error: "Internal server error", error });
+  }
+};
+
+export const resetPassword = async (request, response) => {
+  const resetPasswordToken = request.params.token;
+  const { password, confirmPassword } = request.body;
+  try {
+    const user = await userModel.findOne({
+      resetPasswordToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+    if (!user)
+      return responses.not_found({
+        response,
+        message: "Passsword reset token is invalid or has expired",
+      });
+
+    if (!password || !confirmPassword)
+      return responses.not_found({
+        response,
+        message: "Please insert an input field",
+      });
+
+    const same_password = await bcrypt.compare(password, user.password);
+
+    if (same_password)
+      return responses.bad_request({
+        response,
+        message: "New Password cannot be the same as the old password",
+        error: "Could not update password",
+      });
+    if (password !== confirmPassword)
+      return responses.not_found({
+        response,
+        message: "Password does not match",
+      });
+
+    user.password = password;
+    user.resetPassword = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+    resetPasswordMail(user.email, user.name);
+    responses.success({
+      response,
+      message: "Password has been successful changed",
+    });
+  } catch (error) {
+    response.status(500).send({ error: "Internal server error", error });
   }
 };

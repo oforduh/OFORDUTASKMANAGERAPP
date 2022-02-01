@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 dotenv.config();
 import Task from "./taskModel.js";
+import crypto from "crypto";
 
 const schema = new mongoose.Schema(
   {
@@ -59,6 +60,15 @@ const schema = new mongoose.Schema(
     avatar: {
       type: Buffer,
     },
+    resetPasswordToken: {
+      type: String,
+      required: false,
+    },
+
+    resetPasswordExpires: {
+      type: Date,
+      required: false,
+    },
   },
   { timestamps: true }
 );
@@ -85,7 +95,7 @@ schema.pre("save", async function (next) {
   }
 });
 
-// Hash the password before it saves to the database
+// Deletes all a user task when the user account is deleted
 schema.pre("remove", async function (next) {
   const user = this;
   await Task.deleteMany({ owner: user._id });
@@ -125,6 +135,18 @@ schema.statics.findByCredentials = async function (email, password) {
     throw new Error("Incorrect Email or Password");
   }
   return user;
+};
+
+schema.methods.generatePasswordReset = async function () {
+  const user = this;
+  try {
+    user.resetPasswordToken = crypto.randomBytes(20).toString("hex");
+    user.resetPasswordExpires = Date.now() + 3600000; //expires in an hour
+    await user.save();
+    return user.resetPasswordToken;
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 const userModel = mongoose.model("user", schema);
