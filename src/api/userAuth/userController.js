@@ -8,14 +8,17 @@ import {
 } from "../../emails/sendGrid.js";
 import bcrypt from "bcryptjs";
 import responses from "../../helper/responses.js";
-
+import { generateConfirmationToken } from "../../helper/emailConfirmationToken.js";
 // create a new user
 export const handleCreateUser = async (req, res) => {
   const { name, age, email, password } = req.body;
   try {
     const newUser = userModel({ name, age, email, password });
+    const EmailToken = await generateConfirmationToken(newUser);
+    console.log(EmailToken);
     await newUser.save();
-    sendWelcomeMail(newUser.email, newUser.name);
+    const link = `http://${request.headers.host}/api/auth/verifyEmail${EmailToken}`;
+    sendWelcomeMail(newUser.email, newUser.name, link);
     const token = await newUser.generateAuthToken();
     return res.status(200).json({ data: newUser, token: token });
   } catch (e) {
@@ -286,7 +289,7 @@ export const recoverPassword = async (request, response) => {
       });
     const generatePasswordReset = await user.generatePasswordReset();
     console.log(generatePasswordReset);
-    const link = `http://${request.headers.host}/api/auth/${generatePasswordReset}`;
+    const link = `http://${request.headers.host}/api/auth/resetPassword${generatePasswordReset}`;
     sendRecoverPasswordMail(user.email, user.name, link);
     responses.success({
       response,

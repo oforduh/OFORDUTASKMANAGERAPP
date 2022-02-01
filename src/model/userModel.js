@@ -7,6 +7,7 @@ dotenv.config();
 import Task from "./taskModel.js";
 import crypto from "crypto";
 
+
 const schema = new mongoose.Schema(
   {
     name: {
@@ -60,6 +61,10 @@ const schema = new mongoose.Schema(
     avatar: {
       type: Buffer,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
     resetPasswordToken: {
       type: String,
       required: false,
@@ -84,6 +89,12 @@ schema.virtual("userTasks", {
   ref: "task",
   localField: "_id",
   foreignField: "owner",
+});
+
+schema.virtual("userVerifyEmailToken", {
+  ref: "verificationEmailToken",
+  localField: "_id",
+  foreignField: "user",
 });
 
 // Hash the password before it saves to the database

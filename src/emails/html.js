@@ -1,4 +1,4 @@
-export const html = (name, senderEmail) => {
+export const html = (name, senderEmail, link) => {
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
   <html
     data-editor-version="2"
@@ -615,7 +615,7 @@ export const html = (name, senderEmail) => {
                                                                   "
                                                                 >
                                                                   <a
-                                                                    href=""
+                                                                    href="${link}"
                                                                     style="
                                                                       background-color: #ffbe00;
                                                                       border: 1px
