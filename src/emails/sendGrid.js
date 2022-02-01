@@ -7,12 +7,12 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SENDER_EMAIL = process.env.SENDER_EMAIL;
 sgMail.setApiKey(SENDGRID_API_KEY);
 
-export const sendWelcomeMail = async (email, name) => {
+export const sendWelcomeMail = async (email, name, link) => {
   const msg = {
     to: email,
     from: SENDER_EMAIL,
     subject: "Welcome to the App",
-    html: `${html(name, SENDER_EMAIL)}`,
+    html: `${html(name, SENDER_EMAIL, link)}`,
   };
   sgMail
     .send(msg)

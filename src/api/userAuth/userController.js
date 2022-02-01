@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import userModel from "../../model/userModel.js";
+import verificationEmailTokenModel from "../../model/veificationEmailToken.js";
 import {
   sendWelcomeMail,
   sendCancelationMail,
@@ -17,10 +18,10 @@ export const handleCreateUser = async (req, res) => {
     const EmailToken = await generateConfirmationToken(newUser);
     console.log(EmailToken);
     await newUser.save();
-    const link = `http://${request.headers.host}/api/auth/verifyEmail${EmailToken}`;
+    const link = `http://${req.headers.host}/api/auth/verifyEmail/${EmailToken}`;
     sendWelcomeMail(newUser.email, newUser.name, link);
     const token = await newUser.generateAuthToken();
-    return res.status(200).json({ data: newUser, token: token });
+    return res.status(200).json({ data: newUser, token: token, link });
   } catch (e) {
     if (e.name === "ValidationError") {
       if (e.errors.email) {
@@ -346,5 +347,32 @@ export const resetPassword = async (request, response) => {
     });
   } catch (error) {
     response.status(500).send({ error: "Internal server error", error });
+  }
+};
+
+export const verifyEmail = async (request, response) => {
+  try {
+    const token = request.params.token;
+    const verifyEmailToken = token.split(".")[0];
+    const user = token.split(".")[1];
+    const is_match = await verificationEmailTokenModel.findOne({
+      user,
+      verifyEmailToken,
+      verifyEmailExpires: { $gt: Date.now() },
+    });
+    if (!is_match)
+      return responses.not_found({
+        response,
+        message: "Passsword reset token is invalid or has expired",
+      });
+    const getUser = await userModel.findById({ _id: user });
+    getUser.isVerified = true;
+    await getUser.save();
+    responses.success({
+      response,
+      message: "Email has been verified",
+    });
+  } catch (error) {
+    console.log(error);
   }
 };

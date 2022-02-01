@@ -19,6 +19,7 @@ import {
   change_password,
   recoverPassword,
   resetPassword,
+  verifyEmail,
 } from "./userController.js";
 
 router.post("/user/create", handleCreateUser);
@@ -34,6 +35,7 @@ router.get("/users/:id/avatar", getAUserAvatar);
 router.post("/changePassword", authenticateUser, change_password);
 router.post("/recoverPassword", recoverPassword);
 router.post("/resetPassword/:token", resetPassword);
+router.get("/verifyEmail/:token", verifyEmail);
 
 router.post(
   "/users/me/avatar",
